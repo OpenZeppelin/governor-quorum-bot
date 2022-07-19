@@ -7,7 +7,7 @@ import {
   ethers,
 } from "forta-agent";
 import agent, {
-  QUORUM_UPDATE_EVENT,
+  NEW_PROPOSAL_EVENT,
   GOVERNOR_ADDRESS
 } from "./agent";
 
@@ -28,14 +28,14 @@ describe("proposal creation to lower quorum agent", () => {
       expect(findings).toStrictEqual([]);
       expect(mockTxEvent.filterLog).toHaveBeenCalledTimes(1);
       expect(mockTxEvent.filterLog).toHaveBeenCalledWith(
-        QUORUM_UPDATE_EVENT,
+        NEW_PROPOSAL_EVENT,
         GOVERNOR_ADDRESS
       );
     });
 
     it("returns a finding if there is a new prosposal to lower quorum", async () => {
       const oldNumerator = "5"
-      const newNumerator = "4"
+      const newNumerator = "45"
       const newQuorumProposalEvent = {
         args: {
           oldQuorumNumerator: oldNumerator,
@@ -47,7 +47,7 @@ describe("proposal creation to lower quorum agent", () => {
         .mockReturnValue([newQuorumProposalEvent]);
 
       const findings = await handleTransaction(mockTxEvent);
-
+      console.log(findings)
       expect(findings).toStrictEqual([
         Finding.fromObject({
           name: "Governor Quorum Numerator Lowered",
@@ -63,7 +63,7 @@ describe("proposal creation to lower quorum agent", () => {
       ]);
       expect(mockTxEvent.filterLog).toHaveBeenCalledTimes(1);
       expect(mockTxEvent.filterLog).toHaveBeenCalledWith(
-        QUORUM_UPDATE_EVENT,
+        NEW_PROPOSAL_EVENT,
         GOVERNOR_ADDRESS
       );
     });

@@ -6,12 +6,56 @@ import {
   TransactionEvent,
   FindingSeverity,
   FindingType,
+  LogDescription,
+  getJsonRpcUrl,
 } from "forta-agent";
+import Web3 from "web3";
+import keccak256 from "keccak256";
 
-export const QUORUM_UPDATE_EVENT =
+export const NEW_PROPOSAL_EVENT =
   "event ProposalCreated(uint256 proposalId, address proposer, address[] targets,  uint256[] values, string[] signatures, bytes[] calldatas, uint256 startBlock, uint256 endBlock, string description)";
-export const GOVERNOR_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7";//todo UPDATE
+export const GOVERNOR_ADDRESS = "0x80BAE65E9D56498c7651C34cFB37e2F417C4A703";//todo UPDATE
+export const ABI = [
+	{
+		"inputs": [],
+		"name": "quorumNumerator",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
+]
+
 let findingsCount = 0;
+
+async function getQuorumUpdateValues(event: LogDescription): Promise<number[]> {
+  const { calldatas } = event.args;
+  const functionselector = '0x' + keccak256("updateQuorumNumerator(uint256)").toString('hex', 0, 4);
+
+  const quorumCall: string = calldatas.filter((hash:string) => {
+    return hash.startsWith(functionselector)
+  })[0];
+  if(quorumCall){
+    const newQuorumNumerator = Number('0x' + quorumCall.slice(10));
+
+    const web3 = await new Web3(getJsonRpcUrl());
+
+    const governor = await new web3.eth.Contract(ABI as any, GOVERNOR_ADDRESS);
+
+    let oldQuorumNumerator = await governor.methods.quorumNumerator().call();
+    await oldQuorumNumerator
+    Promise.all(oldQuorumNumerator)
+    console.log(oldQuorumNumerator)
+    return [oldQuorumNumerator, newQuorumNumerator];
+  } else {
+    return [0, 0];
+  }
+}
 
 const handleTransaction: HandleTransaction = async (
   txEvent: TransactionEvent
@@ -23,17 +67,18 @@ const handleTransaction: HandleTransaction = async (
 
   // filter the transaction logs to find a proposal created to lower the quorum
   const quorumUpdateEvents = txEvent.filterLog(
-    QUORUM_UPDATE_EVENT,
+    NEW_PROPOSAL_EVENT,
     GOVERNOR_ADDRESS
   );
 
-  quorumUpdateEvents.forEach((newQuorumProposalEvent) => {
-    // extract new porposal event arguments
-    const oldQuorumNumerator = newQuorumProposalEvent.args.oldQuorumNumerator.toString()
-    const newQuorumNumerator = newQuorumProposalEvent.args.newQuorumNumerator.toString()
+  quorumUpdateEvents.forEach(async (newQuorumProposalEvent) => {
+    let [oldQuorumNumerator, newQuorumNumerator] = await getQuorumUpdateValues(newQuorumProposalEvent);
 
+    //todo get target function somewhere to be QuorumNumeratorUpdated
     // if quorum is being lowered report it
-    if (newQuorumProposalEvent.name == "QuorumNumeratorUpdated" && oldQuorumNumerator > newQuorumNumerator) {
+    if (newQuorumProposalEvent.name == "ProposalCreated" && oldQuorumNumerator > newQuorumNumerator) {
+      const strOldNumerator = oldQuorumNumerator.toString();
+      const strNewNumerator = newQuorumNumerator.toString();
       findings.push(
         Finding.fromObject({
           name: "Governor Quorum Numerator Lowered",
@@ -42,8 +87,8 @@ const handleTransaction: HandleTransaction = async (
           severity: FindingSeverity.Low,
           type: FindingType.Info,
           metadata: {
-              oldQuorumNumerator,
-              newQuorumNumerator,
+              strOldNumerator,
+              strNewNumerator,
           },
         })
       );
