@@ -7,12 +7,11 @@ import {
   ethers,
 } from "forta-agent";
 import agent, {
-  ERC20_TRANSFER_EVENT,
-  TETHER_ADDRESS,
-  TETHER_DECIMALS,
+  QUORUM_UPDATE_EVENT,
+  GOVERNOR_ADDRESS
 } from "./agent";
 
-describe("high tether transfer agent", () => {
+describe("proposal creation to lower quorum agent", () => {
   let handleTransaction: HandleTransaction;
   const mockTxEvent = createTransactionEvent({} as any);
 
@@ -21,7 +20,7 @@ describe("high tether transfer agent", () => {
   });
 
   describe("handleTransaction", () => {
-    it("returns empty findings if there are no Tether transfers", async () => {
+    it("returns empty findings if there are no proposals created", async () => {
       mockTxEvent.filterLog = jest.fn().mockReturnValue([]);
 
       const findings = await handleTransaction(mockTxEvent);
@@ -29,45 +28,43 @@ describe("high tether transfer agent", () => {
       expect(findings).toStrictEqual([]);
       expect(mockTxEvent.filterLog).toHaveBeenCalledTimes(1);
       expect(mockTxEvent.filterLog).toHaveBeenCalledWith(
-        ERC20_TRANSFER_EVENT,
-        TETHER_ADDRESS
+        QUORUM_UPDATE_EVENT,
+        GOVERNOR_ADDRESS
       );
     });
 
-    it("returns a finding if there is a Tether transfer over 10,000", async () => {
-      const mockTetherTransferEvent = {
+    it("returns a finding if there is a new prosposal to lower quorum", async () => {
+      const oldNumerator = "5"
+      const newNumerator = "4"
+      const newQuorumProposalEvent = {
         args: {
-          from: "0xabc",
-          to: "0xdef",
-          value: ethers.BigNumber.from("20000000000"), //20k with 6 decimals
+          oldQuorumNumerator: oldNumerator,
+          newQuorumNumerator: newNumerator,
         },
       };
       mockTxEvent.filterLog = jest
         .fn()
-        .mockReturnValue([mockTetherTransferEvent]);
+        .mockReturnValue([newQuorumProposalEvent]);
 
       const findings = await handleTransaction(mockTxEvent);
 
-      const normalizedValue = mockTetherTransferEvent.args.value.div(
-        10 ** TETHER_DECIMALS
-      );
       expect(findings).toStrictEqual([
         Finding.fromObject({
-          name: "High Tether Transfer",
-          description: `High amount of USDT transferred: ${normalizedValue}`,
-          alertId: "FORTA-1",
+          name: "Governor Quorum Numerator Lowered",
+          description: `The governor's required quorum has been lowered ${oldNumerator} to ${newNumerator}`,
+          alertId: "FORTA-1",// TODO define this code
           severity: FindingSeverity.Low,
           type: FindingType.Info,
           metadata: {
-            to: mockTetherTransferEvent.args.to,
-            from: mockTetherTransferEvent.args.from,
+            oldQuorumNumerator: newQuorumProposalEvent.args.oldQuorumNumerator,
+            newQuorumNumerator: newQuorumProposalEvent.args.newQuorumNumerator,
           },
         }),
       ]);
       expect(mockTxEvent.filterLog).toHaveBeenCalledTimes(1);
       expect(mockTxEvent.filterLog).toHaveBeenCalledWith(
-        ERC20_TRANSFER_EVENT,
-        TETHER_ADDRESS
+        QUORUM_UPDATE_EVENT,
+        GOVERNOR_ADDRESS
       );
     });
   });
