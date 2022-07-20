@@ -48,8 +48,7 @@ async function getQuorumUpdateValues(event: LogDescription): Promise<number[]> {
     const governor = await new web3.eth.Contract(ABI as any, GOVERNOR_ADDRESS);
 
     let oldQuorumNumerator = await governor.methods.quorumNumerator().call();
-    await oldQuorumNumerator
-    Promise.all(oldQuorumNumerator)
+
     console.log(oldQuorumNumerator)
     return [oldQuorumNumerator, newQuorumNumerator];
   } else {
@@ -71,9 +70,9 @@ const handleTransaction: HandleTransaction = async (
     GOVERNOR_ADDRESS
   );
 
-  quorumUpdateEvents.forEach(async (newQuorumProposalEvent) => {
+  for (const newQuorumProposalEvent of quorumUpdateEvents) {
     let [oldQuorumNumerator, newQuorumNumerator] = await getQuorumUpdateValues(newQuorumProposalEvent);
-
+     
     //todo get target function somewhere to be QuorumNumeratorUpdated
     // if quorum is being lowered report it
     if (newQuorumProposalEvent.name == "ProposalCreated" && oldQuorumNumerator > newQuorumNumerator) {
@@ -94,8 +93,7 @@ const handleTransaction: HandleTransaction = async (
       );
       findingsCount++;
     }
-  });
-
+  }
   return findings;
 };
 
