@@ -34,12 +34,14 @@ describe("proposal creation to lower quorum agent", () => {
     });
 
     it("returns a finding if there is a new prosposal to lower quorum", async () => {
-      const oldNumerator = "5"
-      const newNumerator = "45"
+      const oldNumerator = "15"
+      const newNumerator = "3"
       const newQuorumProposalEvent = {
+        name: "ProposalCreated",
         args: {
           oldQuorumNumerator: oldNumerator,
           newQuorumNumerator: newNumerator,
+          calldatas: ["0x06f3f9e60000000000000000000000000000000000000000000000000000000000000003"],
         },
       };
       mockTxEvent.filterLog = jest
@@ -47,12 +49,12 @@ describe("proposal creation to lower quorum agent", () => {
         .mockReturnValue([newQuorumProposalEvent]);
 
       const findings = await handleTransaction(mockTxEvent);
-      console.log(findings)
+
       expect(findings).toStrictEqual([
         Finding.fromObject({
           name: "Governor Quorum Numerator Lowered",
-          description: `The governor's required quorum has been lowered ${oldNumerator} to ${newNumerator}`,
-          alertId: "FORTA-1",// TODO define this code
+          description: `The governor's required quorum has been lowered from ${oldNumerator} to ${newNumerator}`,
+          alertId: "GOVERNOR-QUORUM-UPDATE-PROPOSAL-1",
           severity: FindingSeverity.Low,
           type: FindingType.Info,
           metadata: {
