@@ -67,9 +67,6 @@ const handleTransaction: HandleTransaction = async (
   txEvent: TransactionEvent
 ) => {
   const findings: Finding[] = [];
-  
-  // limiting this agent to emit only 5 findings so that the alert feed is not spammed
-  if (findingsCount >= 5) return findings;
 
   // filter the transaction logs to find a proposal created to lower the quorum
   const quorumUpdateEvents = txEvent.filterLog(
@@ -99,7 +96,6 @@ const handleTransaction: HandleTransaction = async (
             },
           })
         );
-        findingsCount++;
       }
       }
     }
