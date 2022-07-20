@@ -12,7 +12,7 @@ import {
 import Web3 from "web3";
 import keccak256 from "keccak256";
 
-export const NEW_PROPOSAL_EVENT =
+export const PROPOSAL_CREATED_EVENT =
   "event ProposalCreated(uint256 proposalId, address proposer, address[] targets,  uint256[] values, string[] signatures, bytes[] calldatas, uint256 startBlock, uint256 endBlock, string description)";
 export const ABI = [
 	{
@@ -65,7 +65,7 @@ const handleTransaction: HandleTransaction = async (
 
   // filter the transaction logs to find a proposal created to lower the quorum
   const quorumUpdateEvents = txEvent.filterLog(
-    NEW_PROPOSAL_EVENT,
+    PROPOSAL_CREATED_EVENT,
   );
 
   for (const newQuorumProposalEvent of quorumUpdateEvents) {

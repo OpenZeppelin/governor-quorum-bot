@@ -7,7 +7,7 @@ import {
   ethers,
 } from "forta-agent";
 import agent, {
-  NEW_PROPOSAL_EVENT
+  PROPOSAL_CREATED_EVENT
 } from "./agent";
 
 describe("proposal creation to lower quorum agent", () => {
@@ -27,7 +27,7 @@ describe("proposal creation to lower quorum agent", () => {
       expect(findings).toStrictEqual([]);
       expect(mockTxEvent.filterLog).toHaveBeenCalledTimes(1);
       expect(mockTxEvent.filterLog).toHaveBeenCalledWith(
-        NEW_PROPOSAL_EVENT
+        PROPOSAL_CREATED_EVENT
       );
     });
 
@@ -64,7 +64,7 @@ describe("proposal creation to lower quorum agent", () => {
       ]);
       expect(mockTxEvent.filterLog).toHaveBeenCalledTimes(1);
       expect(mockTxEvent.filterLog).toHaveBeenCalledWith(
-        NEW_PROPOSAL_EVENT
+        PROPOSAL_CREATED_EVENT
       );
     });
   });
