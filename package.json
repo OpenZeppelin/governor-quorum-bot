@@ -1,7 +1,7 @@
 {
-  "name": "forta-agent-starter",
+  "name": "forta-agent-governor-proposal-created-lower-quorum",
   "version": "0.0.1",
-  "description": "Forta Agent Typescript starter project",
+  "description": "Forta Agent Typescript project to detect when a proposal is created to lower the quorum",
   "chainIds": [
     1
   ],
