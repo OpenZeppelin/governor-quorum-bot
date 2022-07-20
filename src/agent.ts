@@ -94,13 +94,6 @@ const handleTransaction: HandleTransaction = async (
   return findings;
 };
 
-// const handleBlock: HandleBlock = async (blockEvent: BlockEvent) => {
-//   const findings: Finding[] = [];
-//   // detect some block condition
-//   return findings;
-// }
-
 export default {
-  handleTransaction,
-  // handleBlock
+  handleTransaction
 };
