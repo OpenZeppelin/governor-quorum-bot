@@ -14,7 +14,7 @@ import keccak256 from "keccak256";
 
 export const NEW_PROPOSAL_EVENT =
   "event ProposalCreated(uint256 proposalId, address proposer, address[] targets,  uint256[] values, string[] signatures, bytes[] calldatas, uint256 startBlock, uint256 endBlock, string description)";
-export const GOVERNOR_ADDRESS = "0x80BAE65E9D56498c7651C34cFB37e2F417C4A703";//todo Update with desired contract
+export const GOVERNOR_ADDRESS = "0x80BAE65E9D56498c7651C34cFB37e2F417C4A703";
 export const ABI = [
 	{
 		"inputs": [],
@@ -30,6 +30,7 @@ export const ABI = [
 		"type": "function"
 	}
 ]
+const governorProposals : { [symbol: string]: number[]} = { }
 
 let findingsCount = 0;
 
@@ -60,7 +61,7 @@ const handleTransaction: HandleTransaction = async (
   txEvent: TransactionEvent
 ) => {
   const findings: Finding[] = [];
-
+  //TODO save a maping from int to int[], the first saves the contract address and the array the proposalids
   // limiting this agent to emit only 5 findings so that the alert feed is not spammed
   if (findingsCount >= 5) return findings;
 
@@ -72,26 +73,32 @@ const handleTransaction: HandleTransaction = async (
 
   for (const newQuorumProposalEvent of quorumUpdateEvents) {
     let [oldQuorumNumerator, newQuorumNumerator] = await getQuorumUpdateValues(newQuorumProposalEvent);
-    
-    //todo get target function somewhere to be QuorumNumeratorUpdated
+    console.log("said event", newQuorumProposalEvent)
     // if quorum is being lowered report it
-    if (newQuorumProposalEvent.name == "ProposalCreated" && oldQuorumNumerator > newQuorumNumerator) {
-      const strOldNumerator = oldQuorumNumerator.toString();
-      const strNewNumerator = newQuorumNumerator.toString();
-      findings.push(
-        Finding.fromObject({
-          name: "Governor Quorum Numerator Lowered",
-          description: `The governor's required quorum has been lowered from ${oldQuorumNumerator} to ${newQuorumNumerator}`,
-          alertId: "GOVERNOR-QUORUM-UPDATE-PROPOSAL-1",
-          severity: FindingSeverity.Low,
-          type: FindingType.Info,
-          metadata: {
-            oldQuorumNumerator: strOldNumerator,
-            newQuorumNumerator: strNewNumerator,
-          },
-        })
-      );
-      findingsCount++;
+    if (newQuorumProposalEvent.name == "ProposalCreated") {
+      const { proposalId } = newQuorumProposalEvent.args;
+      governorProposals[newQuorumProposalEvent.address] ? 
+      governorProposals[newQuorumProposalEvent.address].push(proposalId) : 
+      governorProposals[newQuorumProposalEvent.address] = [proposalId];
+
+      if(oldQuorumNumerator > newQuorumNumerator) {
+        const strOldNumerator = oldQuorumNumerator.toString();
+        const strNewNumerator = newQuorumNumerator.toString();
+        findings.push(
+          Finding.fromObject({
+            name: "Governor Quorum Numerator Lowered",
+            description: `The governor's required quorum has been lowered from ${oldQuorumNumerator} to ${newQuorumNumerator}`,
+            alertId: "GOVERNOR-QUORUM-UPDATE-PROPOSAL-1",
+            severity: FindingSeverity.Low,
+            type: FindingType.Info,
+            metadata: {
+              oldQuorumNumerator: strOldNumerator,
+              newQuorumNumerator: strNewNumerator,
+            },
+          })
+        );
+        findingsCount++;
+      }
     }
   }
   return findings;
