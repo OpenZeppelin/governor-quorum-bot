@@ -14,7 +14,7 @@ import keccak256 from "keccak256";
 
 export const PROPOSAL_CREATED_EVENT =
   "event ProposalCreated(uint256 proposalId, address proposer, address[] targets,  uint256[] values, string[] signatures, bytes[] calldatas, uint256 startBlock, uint256 endBlock, string description)";
-export const ABI = [
+const ABI = [
   {
     inputs: [],
     name: "quorumNumerator",
@@ -38,15 +38,14 @@ type QuorumUpdateProposal = {
   newQuorumNumerator: number;
 };
 
-let findingsCount = 0;
-
 async function getQuorumUpdateValues(
   event: LogDescription
 ): Promise<QuorumUpdateProposal[]> {
   const { calldatas, targets } = event.args;
   const response: QuorumUpdateProposal[] = [];
   if (calldatas) {
-    for (const [i, calldata] of calldatas.entries()) {
+    for (let i = 0; i < calldatas.length; i++) {
+      const calldata = calldatas[i];
       if (calldata.startsWith(FUNCTION_SELECTOR)) {
         const newQuorumNumerator = Number("0x" + calldata.slice(10));
 
