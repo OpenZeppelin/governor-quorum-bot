@@ -7,8 +7,7 @@ import {
   ethers,
 } from "forta-agent";
 import agent, {
-  NEW_PROPOSAL_EVENT,
-  GOVERNOR_ADDRESS
+  NEW_PROPOSAL_EVENT
 } from "./agent";
 
 describe("proposal creation to lower quorum agent", () => {
@@ -28,8 +27,7 @@ describe("proposal creation to lower quorum agent", () => {
       expect(findings).toStrictEqual([]);
       expect(mockTxEvent.filterLog).toHaveBeenCalledTimes(1);
       expect(mockTxEvent.filterLog).toHaveBeenCalledWith(
-        NEW_PROPOSAL_EVENT,
-        GOVERNOR_ADDRESS
+        NEW_PROPOSAL_EVENT
       );
     });
 
@@ -43,6 +41,7 @@ describe("proposal creation to lower quorum agent", () => {
           newQuorumNumerator: newNumerator,
           calldatas: ["0x06f3f9e60000000000000000000000000000000000000000000000000000000000000003"],
         },
+        address: "0x80BAE65E9D56498c7651C34cFB37e2F417C4A703"
       };
       mockTxEvent.filterLog = jest
         .fn()
@@ -53,7 +52,7 @@ describe("proposal creation to lower quorum agent", () => {
       expect(findings).toStrictEqual([
         Finding.fromObject({
           name: "Governor Quorum Numerator Lowered",
-          description: `The governor's required quorum has been lowered from ${oldNumerator} to ${newNumerator}`,
+          description: `The governor's required quorum has been lowered from ${oldNumerator} to ${newNumerator} for ${newQuorumProposalEvent.address}`,
           alertId: "GOVERNOR-QUORUM-UPDATE-PROPOSAL-1",
           severity: FindingSeverity.Low,
           type: FindingType.Info,
@@ -65,8 +64,7 @@ describe("proposal creation to lower quorum agent", () => {
       ]);
       expect(mockTxEvent.filterLog).toHaveBeenCalledTimes(1);
       expect(mockTxEvent.filterLog).toHaveBeenCalledWith(
-        NEW_PROPOSAL_EVENT,
-        GOVERNOR_ADDRESS
+        NEW_PROPOSAL_EVENT
       );
     });
   });

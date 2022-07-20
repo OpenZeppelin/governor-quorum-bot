@@ -14,7 +14,6 @@ import keccak256 from "keccak256";
 
 export const NEW_PROPOSAL_EVENT =
   "event ProposalCreated(uint256 proposalId, address proposer, address[] targets,  uint256[] values, string[] signatures, bytes[] calldatas, uint256 startBlock, uint256 endBlock, string description)";
-export const GOVERNOR_ADDRESS = "0x80BAE65E9D56498c7651C34cFB37e2F417C4A703";//todo Update with desired contract
 export const ABI = [
 	{
 		"inputs": [],
@@ -46,7 +45,7 @@ async function getQuorumUpdateValues(event: LogDescription): Promise<number[]> {
   
       const web3 = await new Web3(getJsonRpcUrl());
   
-      const governor = await new web3.eth.Contract(ABI as any, GOVERNOR_ADDRESS);
+      const governor = await new web3.eth.Contract(ABI as any, event.address);
   
       let oldQuorumNumerator = await governor.methods.quorumNumerator().call();
   
@@ -67,13 +66,11 @@ const handleTransaction: HandleTransaction = async (
   // filter the transaction logs to find a proposal created to lower the quorum
   const quorumUpdateEvents = txEvent.filterLog(
     NEW_PROPOSAL_EVENT,
-    GOVERNOR_ADDRESS
   );
 
   for (const newQuorumProposalEvent of quorumUpdateEvents) {
     let [oldQuorumNumerator, newQuorumNumerator] = await getQuorumUpdateValues(newQuorumProposalEvent);
-    
-    //todo get target function somewhere to be QuorumNumeratorUpdated
+
     // if quorum is being lowered report it
     if (newQuorumProposalEvent.name == "ProposalCreated" && oldQuorumNumerator > newQuorumNumerator) {
       const strOldNumerator = oldQuorumNumerator.toString();
@@ -81,7 +78,7 @@ const handleTransaction: HandleTransaction = async (
       findings.push(
         Finding.fromObject({
           name: "Governor Quorum Numerator Lowered",
-          description: `The governor's required quorum has been lowered from ${oldQuorumNumerator} to ${newQuorumNumerator}`,
+          description: `The governor's required quorum has been lowered from ${oldQuorumNumerator} to ${newQuorumNumerator} for ${newQuorumProposalEvent.address}`,
           alertId: "GOVERNOR-QUORUM-UPDATE-PROPOSAL-1",
           severity: FindingSeverity.Low,
           type: FindingType.Info,
