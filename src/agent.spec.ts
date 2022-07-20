@@ -6,9 +6,7 @@ import {
   createTransactionEvent,
   ethers,
 } from "forta-agent";
-import agent, {
-  PROPOSAL_CREATED_EVENT
-} from "./agent";
+import agent, { PROPOSAL_CREATED_EVENT } from "./agent";
 
 describe("proposal creation to lower quorum agent", () => {
   let handleTransaction: HandleTransaction;
@@ -32,17 +30,19 @@ describe("proposal creation to lower quorum agent", () => {
     });
 
     it("returns a finding if there is a new prosposal to lower quorum", async () => {
-      const oldNumerator = "15"
-      const newNumerator = "3"
+      const oldNumerator = "15";
+      const newNumerator = "3";
       const newQuorumProposalEvent = {
         name: "ProposalCreated",
         args: {
           oldQuorumNumerator: oldNumerator,
           newQuorumNumerator: newNumerator,
-          calldatas: ["0x06f3f9e60000000000000000000000000000000000000000000000000000000000000003"],
+          calldatas: [
+            "0x06f3f9e60000000000000000000000000000000000000000000000000000000000000003",
+          ],
           targets: ["0x80BAE65E9D56498c7651C34cFB37e2F417C4A703"],
         },
-        address: "0x80BAE65E9D56498c7651C34cFB37e2F417C4A703"
+        address: "0x80BAE65E9D56498c7651C34cFB37e2F417C4A703",
       };
       mockTxEvent.filterLog = jest
         .fn()
