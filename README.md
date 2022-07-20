@@ -8,12 +8,14 @@ This agent detects when a proposal is created to lower the quorum.
 ## Supported Chains
 
 - Ethereum
-- TBD
 
 ## Alerts
 
-Describe each of the type of alerts fired by this agent
-TBD
+- GOVERNOR-QUORUM-UPDATE-PROPOSAL-1
+  - Fired when a a proposal was created to lower the quorum numerator
+  - Severity is always set to "low"
+  - Type is always set to "info"
+  - Metadata includes the target address, new and current and value of the quorum numerator
 
 
 ## Test Data
