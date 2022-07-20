@@ -57,6 +57,7 @@ describe("proposal creation to lower quorum agent", () => {
           severity: FindingSeverity.Low,
           type: FindingType.Info,
           metadata: {
+            address: newQuorumProposalEvent.address,
             oldQuorumNumerator: newQuorumProposalEvent.args.oldQuorumNumerator,
             newQuorumNumerator: newQuorumProposalEvent.args.newQuorumNumerator,
           },

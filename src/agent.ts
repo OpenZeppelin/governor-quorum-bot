@@ -59,7 +59,7 @@ const handleTransaction: HandleTransaction = async (
   txEvent: TransactionEvent
 ) => {
   const findings: Finding[] = [];
-
+  console.log("I started handleing the tx");
   // limiting this agent to emit only 5 findings so that the alert feed is not spammed
   if (findingsCount >= 5) return findings;
 
@@ -85,6 +85,7 @@ const handleTransaction: HandleTransaction = async (
           metadata: {
             oldQuorumNumerator: strOldNumerator,
             newQuorumNumerator: strNewNumerator,
+            address: newQuorumProposalEvent.address,
           },
         })
       );
