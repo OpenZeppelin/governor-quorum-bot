@@ -29,37 +29,45 @@ export const ABI = [
 		"type": "function"
 	}
 ]
+const FUNCTION_SELECTOR = '0x' + keccak256("updateQuorumNumerator(uint256)").toString('hex', 0, 4);
+
+type QuorumUpdateProposal = {
+  target: string;
+  oldQuorumNumerator: number;
+  newQuorumNumerator: number;
+}
 
 let findingsCount = 0;
 
-async function getQuorumUpdateValues(event: LogDescription): Promise<number[]> {
-  const { calldatas } = event.args;
-  const functionselector = '0x' + keccak256("updateQuorumNumerator(uint256)").toString('hex', 0, 4);
+async function getQuorumUpdateValues(event: LogDescription): Promise<QuorumUpdateProposal[]> {
+  const { calldatas, targets } = event.args;
+  const response: QuorumUpdateProposal[] = [];
   if(calldatas){
-    const quorumCall: string = calldatas.filter((hash:string) => {
-      return hash.startsWith(functionselector)
-    })[0];
-  
-    if(quorumCall){
-      const newQuorumNumerator = Number('0x' + quorumCall.slice(10));
-  
-      const web3 = await new Web3(getJsonRpcUrl());
-  
-      const governor = await new web3.eth.Contract(ABI as any, event.address);
-  
-      let oldQuorumNumerator = await governor.methods.quorumNumerator().call();
-  
-      return [oldQuorumNumerator, newQuorumNumerator];
+    let i = 0;
+    for (const calldata of calldatas) {
+    
+      if(calldata.startsWith(FUNCTION_SELECTOR)){
+        const newQuorumNumerator = Number('0x' + calldata.slice(10));
+    
+        const web3 = await new Web3(getJsonRpcUrl());
+    
+        const governor = await new web3.eth.Contract(ABI as any, event.address);
+    
+        let oldQuorumNumerator = await governor.methods.quorumNumerator().call();
+    
+        response.push({target: targets[i], oldQuorumNumerator, newQuorumNumerator});
+      }
+      i++;
     } 
   }
-  return [0, 0];
+  return response;
 }
 
 const handleTransaction: HandleTransaction = async (
   txEvent: TransactionEvent
 ) => {
   const findings: Finding[] = [];
-  console.log("I started handleing the tx");
+  
   // limiting this agent to emit only 5 findings so that the alert feed is not spammed
   if (findingsCount >= 5) return findings;
 
@@ -69,27 +77,31 @@ const handleTransaction: HandleTransaction = async (
   );
 
   for (const newQuorumProposalEvent of quorumUpdateEvents) {
-    let [oldQuorumNumerator, newQuorumNumerator] = await getQuorumUpdateValues(newQuorumProposalEvent);
+    if (newQuorumProposalEvent.name == "ProposalCreated"){
+      let quorumUpdates = await getQuorumUpdateValues(newQuorumProposalEvent);
 
-    // if quorum is being lowered report it
-    if (newQuorumProposalEvent.name == "ProposalCreated" && oldQuorumNumerator > newQuorumNumerator) {
-      const strOldNumerator = oldQuorumNumerator.toString();
-      const strNewNumerator = newQuorumNumerator.toString();
-      findings.push(
-        Finding.fromObject({
-          name: "Governor Quorum Numerator Lowered",
-          description: `The governor's required quorum has been lowered from ${oldQuorumNumerator} to ${newQuorumNumerator} for ${newQuorumProposalEvent.address}`,
-          alertId: "GOVERNOR-QUORUM-UPDATE-PROPOSAL-1",
-          severity: FindingSeverity.Low,
-          type: FindingType.Info,
-          metadata: {
-            oldQuorumNumerator: strOldNumerator,
-            newQuorumNumerator: strNewNumerator,
-            address: newQuorumProposalEvent.address,
-          },
-        })
-      );
-      findingsCount++;
+      for(const update of quorumUpdates){
+        // if quorum is being lowered report it
+      if (update.oldQuorumNumerator > update.newQuorumNumerator) {
+        const strOldNumerator = update.oldQuorumNumerator.toString();
+        const strNewNumerator = update.newQuorumNumerator.toString();
+        findings.push(
+          Finding.fromObject({
+            name: "Governor Quorum Numerator Lowered",
+            description: `The governor's required quorum has been lowered from ${strOldNumerator} to ${strNewNumerator} for ${update.target}`,
+            alertId: "GOVERNOR-QUORUM-UPDATE-PROPOSAL-1",
+            severity: FindingSeverity.Low,
+            type: FindingType.Info,
+            metadata: {
+              oldQuorumNumerator: strOldNumerator,
+              newQuorumNumerator: strNewNumerator,
+              address: update.target,
+            },
+          })
+        );
+        findingsCount++;
+      }
+      }
     }
   }
   return findings;

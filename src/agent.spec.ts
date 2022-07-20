@@ -40,6 +40,7 @@ describe("proposal creation to lower quorum agent", () => {
           oldQuorumNumerator: oldNumerator,
           newQuorumNumerator: newNumerator,
           calldatas: ["0x06f3f9e60000000000000000000000000000000000000000000000000000000000000003"],
+          targets: ["0x80BAE65E9D56498c7651C34cFB37e2F417C4A703"],
         },
         address: "0x80BAE65E9D56498c7651C34cFB37e2F417C4A703"
       };
