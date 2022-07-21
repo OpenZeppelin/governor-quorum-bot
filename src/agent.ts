@@ -100,7 +100,7 @@ const handleTransaction: HandleTransaction = async (
           const strOldNumerator = update.oldQuorumNumerator.toString();
           const strNewNumerator = update.newQuorumNumerator.toString();
 
-          //pending if
+          //pending if affected
           findings.push(
             Finding.fromObject({
               name: "Governor Quorum Numerator Lowered",

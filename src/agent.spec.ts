@@ -34,6 +34,7 @@ describe("proposal creation to lower quorum agent", () => {
       const newQuorumProposalEvent = {
         name: "ProposalCreated",
         args: {
+          proposer: '0xE8D848debB3A3e12AA815b15900c8E020B863F31',
           oldQuorumNumerator: oldNumerator,
           newQuorumNumerator: newNumerator,
           calldatas: [
@@ -81,6 +82,7 @@ describe("proposal creation to lower quorum agent", () => {
             "0x06f3f9e60000000000000000000000000000000000000000000000000000000000000003",
             "0x06f3f9e60000000000000000000000000000000000000000000000000000000000000003",
           ],
+          proposer: '0xE8D848debB3A3e12AA815b15900c8E020B863F31',
           targets: [
             "0x80BAE65E9D56498c7651C34cFB37e2F417C4A703",
             "0x80BAE65E9D56498c7651C34cFB37e2F417C4A703",
@@ -142,6 +144,7 @@ describe("proposal creation to lower quorum agent", () => {
         name: "ProposalCreated",
         args: {
           proposalId: 2,
+          proposer: '0xE8D848debB3A3e12AA815b15900c8E020B863F31',
           oldQuorumNumerator: oldNumerator,
           newQuorumNumerator: newNumerator,
           calldatas: ["0x06f3f9e60000000000000000000000000000000000000000000000000000000000000003"],
