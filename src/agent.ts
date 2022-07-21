@@ -115,22 +115,23 @@ async function getDefeatedProposals(governor: ethers.Contract): Promise<number[]
   return defeatedProposals;
 }
 
-async function proposalAltersPreviousResults(
+async function getAffectedProposals(
   governor: ethers.Contract,
   newQuorumNumerator: number
-): Promise<boolean> {
+): Promise<number[]> {
   const currentDefeatedProposals: number[] = await getDefeatedProposals(governor);
   
   // if no previous proposal has failed due to lack of quorum, quorum changes won't affect them
-  if (currentDefeatedProposals.length == 0) {
-    return true;
+  if (currentDefeatedProposals.length != 0) {  
+    // update quorum
+    await governor.updateQuorumNumerator(newQuorumNumerator);
+    // re-run all saved proposalsIds state and compare if now they pass
+    const newDefeatedProposals: number[] = await getDefeatedProposals(governor);
+    if(currentDefeatedProposals.length > newDefeatedProposals.length) {
+      return currentDefeatedProposals.filter(id => newDefeatedProposals.indexOf(id) < 0);
+    }
   }
-  // update quorum
-  await governor.updateQuorumNumerator(newQuorumNumerator);
-  // re-run all saved proposalsIds state and compare if now they pass
-  const newDefeatedProposals: number[] = await getDefeatedProposals(governor);
-
-  return currentDefeatedProposals.length > newDefeatedProposals.length;
+  return [];
 }
 
 const handleTransaction: HandleTransaction = async (
@@ -163,13 +164,12 @@ const handleTransaction: HandleTransaction = async (
         if (update.oldQuorumNumerator > update.newQuorumNumerator) {
           const strOldNumerator = update.oldQuorumNumerator.toString();
           const strNewNumerator = update.newQuorumNumerator.toString();
-        
-          if (await proposalAltersPreviousResults(governor, update.newQuorumNumerator)) {
-            
+          const affectedProposald = await getAffectedProposals(governor, update.newQuorumNumerator);
+          if (affectedProposald.length > 0) {            
             findings.push(
               Finding.fromObject({
                 name: "Governor Quorum Numerator Lowered",
-                description: `The governor's required quorum has been lowered from ${strOldNumerator} to ${strNewNumerator} for ${update.target}`,
+                description: `The governor's required quorum has been lowered from ${strOldNumerator} to ${strNewNumerator} for ${update.target}, ${affectedProposald}`,
                 alertId: "GOVERNOR-QUORUM-UPDATE-PROPOSAL-1",
                 severity: FindingSeverity.Low,
                 type: FindingType.Info,
@@ -177,7 +177,6 @@ const handleTransaction: HandleTransaction = async (
                   oldQuorumNumerator: strOldNumerator,
                   newQuorumNumerator: strNewNumerator,
                   address: update.target,
-                  affectedProposalIds: [],
                 },
               })
             );
