@@ -4,7 +4,6 @@ import {
   Finding,
   HandleTransaction,
   createTransactionEvent,
-  ethers,
 } from "forta-agent";
 import agent, { PROPOSAL_CREATED_EVENT } from "./agent";
 

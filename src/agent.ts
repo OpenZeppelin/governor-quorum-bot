@@ -8,9 +8,10 @@ import {
   FindingType,
   LogDescription,
   getJsonRpcUrl,
+  ethers
 } from "forta-agent";
-import Web3 from "web3";
 import keccak256 from "keccak256";
+import ganache from 'ganache-core'
 
 export const PROPOSAL_CREATED_EVENT =
   "event ProposalCreated(uint256 proposalId, address proposer, address[] targets,  uint256[] values, string[] signatures, bytes[] calldatas, uint256 startBlock, uint256 endBlock, string description)";
@@ -40,8 +41,18 @@ type QuorumUpdateProposal = {
   newQuorumNumerator: number;
 };
 
+// returns a governor contract using ethers provider pointing to a forked version of the chain
+async function getContract(userAddress: string, contractAddress: string): Promise<ethers.Contract> {
+  const provider = await new ethers.providers.Web3Provider(ganache.provider({
+    fork: getJsonRpcUrl(), // specify the chain to fork from  
+    unlocked_accounts: [userAddress] // specify any accounts to unlock so you dont need the private key to make transactions
+  }) as any)
+  return  await new ethers.Contract(contractAddress, ABI, provider.getSigner(userAddress))
+}
+
 async function getQuorumUpdateValues(
-  event: LogDescription
+  event: LogDescription,
+  governor: ethers.Contract
 ): Promise<QuorumUpdateProposal[]> {
   const { calldatas, targets } = event.args;
   const response: QuorumUpdateProposal[] = [];
@@ -50,14 +61,8 @@ async function getQuorumUpdateValues(
       const calldata = calldatas[i];
       if (calldata.startsWith(FUNCTION_SELECTOR)) {
         const newQuorumNumerator = Number("0x" + calldata.slice(10));
-
-        const web3 = await new Web3(getJsonRpcUrl());
-
-        const governor = await new web3.eth.Contract(ABI as any, event.address);
-        console.log(governor)
-        let oldQuorumNumerator = await governor.methods
-          .quorumNumerator()
-          .call();
+        
+        let oldQuorumNumerator = await governor.quorumNumerator();
 
         response.push({
           target: targets[i],
@@ -70,6 +75,10 @@ async function getQuorumUpdateValues(
   return response;
 }
 
+async function simulateExecute(){
+
+}
+
 const handleTransaction: HandleTransaction = async (
   txEvent: TransactionEvent
 ) => {
@@ -77,16 +86,21 @@ const handleTransaction: HandleTransaction = async (
 
   // filter the transaction logs to find a proposal created to lower the quorum
   const quorumUpdateEvents = txEvent.filterLog(PROPOSAL_CREATED_EVENT);
-
   for (const newQuorumProposalEvent of quorumUpdateEvents) {
     if (newQuorumProposalEvent.name == "ProposalCreated") {
-      let quorumUpdates = await getQuorumUpdateValues(newQuorumProposalEvent);
-
+      const { proposer } = newQuorumProposalEvent.args;
+      const governor = await getContract(proposer, newQuorumProposalEvent.address);
+      
+      let quorumUpdates = await getQuorumUpdateValues(newQuorumProposalEvent, governor);
+      
       for (const update of quorumUpdates) {
+        
         // if quorum is being lowered report it
         if (update.oldQuorumNumerator > update.newQuorumNumerator) {
           const strOldNumerator = update.oldQuorumNumerator.toString();
           const strNewNumerator = update.newQuorumNumerator.toString();
+
+          //pending if
           findings.push(
             Finding.fromObject({
               name: "Governor Quorum Numerator Lowered",
