@@ -1,3 +1,4 @@
+import type {} from "@nomiclabs/hardhat-ethers";
 import {
   Finding,
   HandleTransaction,
@@ -5,12 +6,10 @@ import {
   FindingSeverity,
   FindingType,
   LogDescription,
+  ethers,
 } from "forta-agent";
 import { network } from "hardhat";
-//import { ethers } from "ethers";
-const { ethers } = require("hardhat");
 import keccak256 from "keccak256";
-//import ganache from "ganache-core";
 
 export const PROPOSAL_CREATED_EVENT =
   "event ProposalCreated(uint256 proposalId, address proposer, address[] targets,  uint256[] values, string[] signatures, bytes[] calldatas, uint256 startBlock, uint256 endBlock, string description)";
@@ -125,8 +124,8 @@ async function getContract(
   contractAddress: string,
   blockNumber: number
 ): Promise<ethers.Contract> {
-  const provider = await new ethers.providers.Web3Provider(network.provider);
-  console.log(provider)
+  const provider = await new ethers.providers.Web3Provider(network.provider as any);
+
   return await new ethers.Contract(
     contractAddress,
     ABI,
@@ -147,7 +146,7 @@ async function getQuorumUpdateValues(
         const newQuorumNumerator = Number("0x" + calldata.slice(10));
 
         let oldQuorumNumerator = await governor.quorumNumerator();
-        
+
         response.push({
           target: targets[i],
           oldQuorumNumerator,
@@ -163,18 +162,18 @@ async function getQuorumUpdateValues(
 async function getDefeatedProposals(
   governor: ethers.Contract
 ): Promise<number[]> {
-  const defeatedProposals = [1];
+  const defeatedProposals = [];
   const eventFilter = await governor.filters.ProposalCreated();
-  /*const proposalsEvents = await governor.queryFilter(eventFilter);
-  console.log(proposalsEvents[0]);
+  const proposalsEvents = await governor.queryFilter(eventFilter);
+  
   // Save all quorum defeated proposals
   for (const proposalEvent of proposalsEvents) {
-    const { proposalId } = proposalEvent.args!.proposalId;
-    const state = await governor.state(proposalId);
+    const { proposalId } = proposalEvent.args as any;
+    const state = await governor.state(proposalId);    
     if (state == 3) {
       defeatedProposals.push(proposalId);
     }
-  }*/
+  }
   return defeatedProposals;
 }
 
