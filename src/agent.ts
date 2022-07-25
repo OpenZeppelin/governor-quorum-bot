@@ -1,23 +1,83 @@
 import {
-  BlockEvent,
   Finding,
-  HandleBlock,
   HandleTransaction,
   TransactionEvent,
   FindingSeverity,
   FindingType,
   LogDescription,
-  getJsonRpcUrl,
-  ethers,
 } from "forta-agent";
+import { network } from "hardhat";
+//import { ethers } from "ethers";
+const { ethers } = require("hardhat");
 import keccak256 from "keccak256";
-import ganache from "ganache-core";
+//import ganache from "ganache-core";
 
 export const PROPOSAL_CREATED_EVENT =
   "event ProposalCreated(uint256 proposalId, address proposer, address[] targets,  uint256[] values, string[] signatures, bytes[] calldatas, uint256 startBlock, uint256 endBlock, string description)";
 export const GOVERNOR_ADDRESS = "0x80BAE65E9D56498c7651C34cFB37e2F417C4A703";
-const governorProposals: { [symbol: string]: number[] } = {};
+
 const ABI = [
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "proposalId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "proposer",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address[]",
+        "name": "targets",
+        "type": "address[]"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256[]",
+        "name": "values",
+        "type": "uint256[]"
+      },
+      {
+        "indexed": false,
+        "internalType": "string[]",
+        "name": "signatures",
+        "type": "string[]"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes[]",
+        "name": "calldatas",
+        "type": "bytes[]"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "startBlock",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "endBlock",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "description",
+        "type": "string"
+      }
+    ],
+    "name": "ProposalCreated",
+    "type": "event"
+  },
   {
     inputs: [],
     name: "quorumNumerator",
@@ -62,14 +122,11 @@ type QuorumUpdateProposal = {
 // returns a governor contract using ethers provider pointing to a forked version of the chain
 async function getContract(
   userAddress: string,
-  contractAddress: string
+  contractAddress: string,
+  blockNumber: number
 ): Promise<ethers.Contract> {
-  const provider = await new ethers.providers.Web3Provider(
-    ganache.provider({
-      fork: getJsonRpcUrl(), // specify the chain to fork from
-      unlocked_accounts: [userAddress], // specify any accounts to unlock so you dont need the private key to make transactions
-    }) as any
-  );
+  const provider = await new ethers.providers.Web3Provider(network.provider);
+  console.log(provider)
   return await new ethers.Contract(
     contractAddress,
     ABI,
@@ -89,8 +146,8 @@ async function getQuorumUpdateValues(
       if (calldata.startsWith(FUNCTION_SELECTOR)) {
         const newQuorumNumerator = Number("0x" + calldata.slice(10));
 
-        let oldQuorumNumerator = 16; //await governor.quorumNumerator();
-
+        let oldQuorumNumerator = await governor.quorumNumerator();
+        
         response.push({
           target: targets[i],
           oldQuorumNumerator,
@@ -103,15 +160,21 @@ async function getQuorumUpdateValues(
 }
 
 // Gets all defeated proposals
-async function getDefeatedProposals(governor: ethers.Contract): Promise<number[]> {
-  const defeatedProposals = [];
+async function getDefeatedProposals(
+  governor: ethers.Contract
+): Promise<number[]> {
+  const defeatedProposals = [1];
+  const eventFilter = await governor.filters.ProposalCreated();
+  /*const proposalsEvents = await governor.queryFilter(eventFilter);
+  console.log(proposalsEvents[0]);
   // Save all quorum defeated proposals
-  for (const proposal of governorProposals[governor.address]) {
-    const state = await governor.state(proposal);
+  for (const proposalEvent of proposalsEvents) {
+    const { proposalId } = proposalEvent.args!.proposalId;
+    const state = await governor.state(proposalId);
     if (state == 3) {
-      defeatedProposals.push(proposal);
+      defeatedProposals.push(proposalId);
     }
-  }
+  }*/
   return defeatedProposals;
 }
 
@@ -119,16 +182,20 @@ async function getAffectedProposals(
   governor: ethers.Contract,
   newQuorumNumerator: number
 ): Promise<number[]> {
-  const currentDefeatedProposals: number[] = await getDefeatedProposals(governor);
-  
+  const currentDefeatedProposals: number[] = await getDefeatedProposals(
+    governor
+  );
+
   // if no previous proposal has failed due to lack of quorum, quorum changes won't affect them
-  if (currentDefeatedProposals.length != 0) {  
+  if (currentDefeatedProposals.length != 0) {
     // update quorum
     await governor.updateQuorumNumerator(newQuorumNumerator);
     // re-run all saved proposalsIds state and compare if now they pass
     const newDefeatedProposals: number[] = await getDefeatedProposals(governor);
-    if(currentDefeatedProposals.length > newDefeatedProposals.length) {
-      return currentDefeatedProposals.filter(id => newDefeatedProposals.indexOf(id) < 0);
+    if (currentDefeatedProposals.length > newDefeatedProposals.length) {
+      return currentDefeatedProposals.filter(
+        (id) => newDefeatedProposals.indexOf(id) < 0
+      );
     }
   }
   return [];
@@ -144,28 +211,29 @@ const handleTransaction: HandleTransaction = async (
   const quorumUpdateEvents = txEvent.filterLog(PROPOSAL_CREATED_EVENT);
   for (const newQuorumProposalEvent of quorumUpdateEvents) {
     if (newQuorumProposalEvent.name == "ProposalCreated") {
-      const { proposalId, proposer } = newQuorumProposalEvent.args;
-      governorProposals[newQuorumProposalEvent.address]
-        ? governorProposals[newQuorumProposalEvent.address].push(proposalId)
-        : (governorProposals[newQuorumProposalEvent.address] = [proposalId]);
+      const { proposer, startBlock } = newQuorumProposalEvent.args;
 
       const governor = await getContract(
         proposer,
-        newQuorumProposalEvent.address
+        newQuorumProposalEvent.address,
+        startBlock.toNumber()
       );
-      
+
       let quorumUpdates = await getQuorumUpdateValues(
         newQuorumProposalEvent,
         governor
       );
-      
+
       for (const update of quorumUpdates) {
         // if quorum is being lowered report it
         if (update.oldQuorumNumerator > update.newQuorumNumerator) {
           const strOldNumerator = update.oldQuorumNumerator.toString();
           const strNewNumerator = update.newQuorumNumerator.toString();
-          const affectedProposald = await getAffectedProposals(governor, update.newQuorumNumerator);
-          if (affectedProposald.length > 0) {            
+          const affectedProposald = await getAffectedProposals(
+            governor,
+            update.newQuorumNumerator
+          );
+          if (affectedProposald.length > 0) {
             findings.push(
               Finding.fromObject({
                 name: "Governor Quorum Numerator Lowered",

@@ -177,5 +177,51 @@ describe("proposal creation to lower quorum agent", () => {
         PROPOSAL_CREATED_EVENT
       );
     });
+
+    it.only("returns a finding if there is a new prosposal to lower quorum affecting previous proposals in real contract", async () => {
+      // steps
+      // deploy governance contract and mint tokens to propose and vote
+      const mockGovernorContract = {
+        quorumNumerator: jest.fn(),
+        state: jest.fn(),
+        updateQuorumNumerator: jest.fn(),
+      };
+      // create proposal
+      const newProposalEvent = {
+        name: "ProposalCreated",
+        args: {
+          proposalId: 1,
+        },
+      };
+      mockTxEvent.filterLog = jest.fn().mockReturnValue([newProposalEvent]);
+      // defeat it
+      mockGovernorContract.state.mock.results = [
+        {
+          type: "return",
+          value: 3,
+        },
+        {
+          type: "return",
+          value: 4,
+        },
+      ];
+      // create quorum lowering proposal
+      const newQuorumProposalEvent = {
+        name: "ProposalCreated",
+        args: {
+          proposer: "0xE8D848debB3A3e12AA815b15900c8E020B863F31",
+          oldQuorumNumerator: "15",
+          newQuorumNumerator: "3",
+          calldatas: [
+            "0x06f3f9e60000000000000000000000000000000000000000000000000000000000000003",
+          ],
+          targets: ["0x80BAE65E9D56498c7651C34cFB37e2F417C4A703"],
+        },
+        address: "0x80BAE65E9D56498c7651C34cFB37e2F417C4A703",
+      };
+      mockTxEvent.filterLog = jest
+        .fn()
+        .mockReturnValue([newQuorumProposalEvent]);
+    });
   });
 });
