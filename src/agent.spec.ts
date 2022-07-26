@@ -8,6 +8,7 @@ import {
 import agent, { PROPOSAL_CREATED_EVENT } from "./agent";
 
 describe("proposal creation to lower quorum agent", () => {
+  //test must run on block 14800611 temporary
   let handleTransaction: HandleTransaction;
   const mockTxEvent = createTransactionEvent({} as any);
 
@@ -29,7 +30,7 @@ describe("proposal creation to lower quorum agent", () => {
     });
 
     it("returns a finding if there is a new prosposal to lower quorum", async () => {
-      const oldNumerator = "15";
+      const oldNumerator = "25";
       const newNumerator = "3";
       const newQuorumProposalEvent = {
         name: "ProposalCreated",
@@ -53,7 +54,7 @@ describe("proposal creation to lower quorum agent", () => {
       expect(findings).toStrictEqual([
         Finding.fromObject({
           name: "Governor Quorum Numerator Lowered",
-          description: `The governor's required quorum has been lowered from ${oldNumerator} to ${newNumerator} for ${newQuorumProposalEvent.address}`,
+          description: `The governor's required quorum has been lowered from ${oldNumerator} to ${newNumerator} for ${newQuorumProposalEvent.address}, affected proposalIds: 0xc4715e926c1dd96ed6d703131564450ab353e117129654dd9bd437cf35bb1d18`,
           alertId: "GOVERNOR-QUORUM-UPDATE-PROPOSAL-1",
           severity: FindingSeverity.Low,
           type: FindingType.Info,
@@ -71,7 +72,7 @@ describe("proposal creation to lower quorum agent", () => {
     });
 
     it("returns a finding if there is a new prosposal to lower quorum within different calldatas", async () => {
-      const oldNumerator = "15";
+      const oldNumerator = "25";
       const newNumerator = "3";
       const newQuorumProposalEvent = {
         name: "ProposalCreated",
@@ -99,7 +100,7 @@ describe("proposal creation to lower quorum agent", () => {
       expect(findings).toStrictEqual([
         Finding.fromObject({
           name: "Governor Quorum Numerator Lowered",
-          description: `The governor's required quorum has been lowered from ${oldNumerator} to ${newNumerator} for ${newQuorumProposalEvent.args.targets[0]}`,
+          description: `The governor's required quorum has been lowered from ${oldNumerator} to ${newNumerator} for ${newQuorumProposalEvent.args.targets[0]}, affected proposalIds: 0xc4715e926c1dd96ed6d703131564450ab353e117129654dd9bd437cf35bb1d18`,
           alertId: "GOVERNOR-QUORUM-UPDATE-PROPOSAL-1",
           severity: FindingSeverity.Low,
           type: FindingType.Info,
@@ -111,7 +112,7 @@ describe("proposal creation to lower quorum agent", () => {
         }),
         Finding.fromObject({
           name: "Governor Quorum Numerator Lowered",
-          description: `The governor's required quorum has been lowered from ${oldNumerator} to ${newNumerator} for ${newQuorumProposalEvent.args.targets[1]}`,
+          description: `The governor's required quorum has been lowered from ${oldNumerator} to ${newNumerator} for ${newQuorumProposalEvent.args.targets[1]}, affected proposalIds: 0xc4715e926c1dd96ed6d703131564450ab353e117129654dd9bd437cf35bb1d18`,
           alertId: "GOVERNOR-QUORUM-UPDATE-PROPOSAL-1",
           severity: FindingSeverity.Low,
           type: FindingType.Info,
@@ -136,7 +137,7 @@ describe("proposal creation to lower quorum agent", () => {
         },
       };
       mockTxEvent.filterLog = jest.fn().mockReturnValue([newProposalEvent]);
-      const oldNumerator = "15";
+      const oldNumerator = "25";
       const newNumerator = "3";
       const newQuorumProposalEvent = {
         name: "ProposalCreated",
@@ -161,7 +162,7 @@ describe("proposal creation to lower quorum agent", () => {
       expect(findings).toStrictEqual([
         Finding.fromObject({
           name: "Governor Quorum Numerator Lowered",
-          description: `The governor's required quorum has been lowered from ${oldNumerator} to ${newNumerator} for ${newQuorumProposalEvent.address}`,
+          description: `The governor's required quorum has been lowered from ${oldNumerator} to ${newNumerator} for ${newQuorumProposalEvent.address}, affected proposalIds: 0xc4715e926c1dd96ed6d703131564450ab353e117129654dd9bd437cf35bb1d18`,
           alertId: "GOVERNOR-QUORUM-UPDATE-PROPOSAL-1",
           severity: FindingSeverity.Low,
           type: FindingType.Info,
@@ -178,7 +179,7 @@ describe("proposal creation to lower quorum agent", () => {
       );
     });
 
-    it.only("returns a finding if there is a new prosposal to lower quorum affecting previous proposals in real contract", async () => {
+    it("returns a finding if there is a new prosposal to lower quorum affecting previous proposals in real contract", async () => {
       // steps
       // deploy governance contract and mint tokens to propose and vote
       const mockGovernorContract = {
@@ -210,7 +211,7 @@ describe("proposal creation to lower quorum agent", () => {
         name: "ProposalCreated",
         args: {
           proposer: "0xE8D848debB3A3e12AA815b15900c8E020B863F31",
-          oldQuorumNumerator: "15",
+          oldQuorumNumerator: "25",
           newQuorumNumerator: "3",
           calldatas: [
             "0x06f3f9e60000000000000000000000000000000000000000000000000000000000000003",
@@ -222,6 +223,26 @@ describe("proposal creation to lower quorum agent", () => {
       mockTxEvent.filterLog = jest
         .fn()
         .mockReturnValue([newQuorumProposalEvent]);
+      
+      const findings = await handleTransaction(mockTxEvent);
+      expect(findings).toStrictEqual([
+        Finding.fromObject({
+          name: "Governor Quorum Numerator Lowered",
+          description: `The governor's required quorum has been lowered from 25 to 3 for ${newQuorumProposalEvent.address}, affected proposalIds: 0xc4715e926c1dd96ed6d703131564450ab353e117129654dd9bd437cf35bb1d18`,
+          alertId: "GOVERNOR-QUORUM-UPDATE-PROPOSAL-1",
+          severity: FindingSeverity.Low,
+          type: FindingType.Info,
+          metadata: {
+            address: newQuorumProposalEvent.address,
+            oldQuorumNumerator: newQuorumProposalEvent.args.oldQuorumNumerator,
+            newQuorumNumerator: newQuorumProposalEvent.args.newQuorumNumerator,
+          },
+        }),
+      ]);
+      expect(mockTxEvent.filterLog).toHaveBeenCalledTimes(1);
+      expect(mockTxEvent.filterLog).toHaveBeenCalledWith(
+        PROPOSAL_CREATED_EVENT
+      );
     });
   });
 });
