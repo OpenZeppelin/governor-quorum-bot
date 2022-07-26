@@ -118,7 +118,7 @@ type QuorumUpdateProposal = {
   newQuorumNumerator: number;
 };
 
-// returns a governor contract using ethers provider pointing to a forked version of the chain
+// Returns a governor contract using ethers provider pointing to a forked version of the chain
 async function getContract(
   userAddress: string,
   contractAddress: string,
@@ -132,7 +132,7 @@ async function getContract(
     provider.getSigner(userAddress)
   );
 }
-
+// Return current and proposed numerator value for address
 async function getQuorumUpdateValues(
   event: LogDescription,
   governor: ethers.Contract
@@ -177,6 +177,7 @@ async function getDefeatedProposals(
   return defeatedProposals;
 }
 
+// Returns proposals whose state changed after the quorum update
 async function getAffectedProposals(
   governor: ethers.Contract,
   newQuorumNumerator: number
@@ -184,7 +185,6 @@ async function getAffectedProposals(
   const currentDefeatedProposals: number[] = await getDefeatedProposals(
     governor
   );
-
   // if no previous proposal has failed due to lack of quorum, quorum changes won't affect them
   if (currentDefeatedProposals.length != 0) {
     // update quorum
