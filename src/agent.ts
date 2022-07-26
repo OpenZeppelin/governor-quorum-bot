@@ -19,13 +19,10 @@ const TOKEN_ABI = [
   {
     inputs: [{ internalType: "uint256", name: "blockNumber", type: "uint256" }],
     name: "getPastTotalSupply",
-    outputs: [
-      { internalType: "uint256", name: "", type: "uint256" },
-    ],
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
     stateMutability: "view",
     type: "function",
   },
-
 ];
 const ABI = [
   {
@@ -173,7 +170,7 @@ async function getContract(
   );
   return await new ethers.Contract(
     contractAddress,
-    (token)?TOKEN_ABI:ABI,
+    token ? TOKEN_ABI : ABI,
     provider.getSigner(userAddress)
   );
 }
@@ -243,12 +240,12 @@ async function getAffectedProposals(
         //Check quorum
         const quorumDenominator = await governor.quorumDenominator();
         const tokenAddress = await governor.token();
-        const token = await getContract(governor.address,tokenAddress,true);
+        const token = await getContract(governor.address, tokenAddress, true);
         const supply = await token.getPastTotalSupply(snapshot); //use snapshot here to get the supply
 
         const quorum = (supply * quorumNumerator) / quorumDenominator;
         if (quorum <= voteCount) {
-          result.push((proposalId).toHexString());
+          result.push(proposalId.toHexString());
         }
       }
     }

@@ -223,7 +223,7 @@ describe("proposal creation to lower quorum agent", () => {
       mockTxEvent.filterLog = jest
         .fn()
         .mockReturnValue([newQuorumProposalEvent]);
-      
+
       const findings = await handleTransaction(mockTxEvent);
       expect(findings).toStrictEqual([
         Finding.fromObject({
