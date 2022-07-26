@@ -10,7 +10,7 @@ module.exports = {
       forking: {
         url: getJsonRpcUrl(),
         blockNumber: 14800611,
-      }
-    }
-  }
+      },
+    },
+  },
 };

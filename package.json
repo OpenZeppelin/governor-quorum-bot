@@ -21,7 +21,8 @@
     "disable": "forta-agent disable",
     "enable": "forta-agent enable",
     "keyfile": "forta-agent keyfile",
-    "test": "jest"
+    "test": "jest",
+    "prettier": "prettier --write ."
   },
   "dependencies": {
     "ethers": "^5.6.9",
