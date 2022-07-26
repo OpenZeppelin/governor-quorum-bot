@@ -1,4 +1,5 @@
 import type {} from "@nomiclabs/hardhat-ethers";
+import { BigNumber } from "ethers";
 import {
   Finding,
   HandleTransaction,
@@ -205,7 +206,7 @@ async function getQuorumUpdateValues(
 // Gets all defeated proposals
 async function getDefeatedProposals(
   governor: ethers.Contract
-): Promise<number[]> {
+): Promise<BigNumber[]> {
   const defeatedProposals = [];
   const eventFilter = await governor.filters.ProposalCreated();
   const proposalsEvents = await governor.queryFilter(eventFilter);
@@ -225,9 +226,9 @@ async function getDefeatedProposals(
 async function getAffectedProposals(
   governor: ethers.Contract,
   quorumNumerator: number
-): Promise<number[]> {
-  const result: number[] = [];
-  const currentDefeatedProposals: number[] = await getDefeatedProposals(
+): Promise<string[]> {
+  const result: string[] = [];
+  const currentDefeatedProposals: BigNumber[] = await getDefeatedProposals(
     governor
   );
   // if no previous proposal has failed due to lack of quorum, quorum changes won't affect them
@@ -247,7 +248,7 @@ async function getAffectedProposals(
 
         const quorum = (supply * quorumNumerator) / quorumDenominator;
         if (quorum <= voteCount) {
-          result.push(proposalId);
+          result.push((proposalId).toHexString());
         }
       }
     }
@@ -291,7 +292,7 @@ const handleTransaction: HandleTransaction = async (
             findings.push(
               Finding.fromObject({
                 name: "Governor Quorum Numerator Lowered",
-                description: `The governor's required quorum has been lowered from ${strOldNumerator} to ${strNewNumerator} for ${update.target}, ${affectedProposald}`,
+                description: `The governor's required quorum has been lowered from ${strOldNumerator} to ${strNewNumerator} for ${update.target}, affected proposalIds: ${affectedProposald}`,
                 alertId: "GOVERNOR-QUORUM-UPDATE-PROPOSAL-1",
                 severity: FindingSeverity.Low,
                 type: FindingType.Info,
