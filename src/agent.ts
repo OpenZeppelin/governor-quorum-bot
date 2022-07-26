@@ -87,6 +87,25 @@ const ABI = [
     type: "event",
   },
   {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "blockNumber",
+        type: "uint256",
+      },
+    ],
+    name: "quorumNumerator",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
     inputs: [],
     name: "quorumNumerator",
     outputs: [
@@ -187,7 +206,7 @@ async function getQuorumUpdateValues(
       if (calldata.startsWith(FUNCTION_SELECTOR)) {
         const newQuorumNumerator = Number("0x" + calldata.slice(10));
 
-        let oldQuorumNumerator = await governor.quorumNumerator();
+        let oldQuorumNumerator = await governor["quorumNumerator()"]();
 
         response.push({
           target: targets[i],
@@ -264,7 +283,7 @@ const handleTransaction: HandleTransaction = async (
   for (const newQuorumProposalEvent of quorumUpdateEvents) {
     if (newQuorumProposalEvent.name == "ProposalCreated") {
       const { proposer } = newQuorumProposalEvent.args;
-
+      let newVersion: boolean;
       const governor = await getContract(
         proposer,
         newQuorumProposalEvent.address,
@@ -276,30 +295,38 @@ const handleTransaction: HandleTransaction = async (
         governor
       );
 
-      for (const update of quorumUpdates) {
-        // if quorum is being lowered report it
-        if (update.oldQuorumNumerator > update.newQuorumNumerator) {
-          const strOldNumerator = update.oldQuorumNumerator.toString();
-          const strNewNumerator = update.newQuorumNumerator.toString();
-          const affectedProposald = await getAffectedProposals(
-            governor,
-            Number(strNewNumerator)
-          );
-          if (affectedProposald.length > 0) {
-            findings.push(
-              Finding.fromObject({
-                name: "Governor Quorum Numerator Lowered",
-                description: `The governor's required quorum has been lowered from ${strOldNumerator} to ${strNewNumerator} for ${update.target}, affected proposalIds: ${affectedProposald}`,
-                alertId: "GOVERNOR-QUORUM-UPDATE-PROPOSAL-1",
-                severity: FindingSeverity.Low,
-                type: FindingType.Info,
-                metadata: {
-                  oldQuorumNumerator: strOldNumerator,
-                  newQuorumNumerator: strNewNumerator,
-                  address: update.target,
-                },
-              })
+      try {
+        await governor["quorumNumerator(uint256)"](1);
+        newVersion = true;
+      } catch (Exception) {
+        newVersion = false;
+      }
+      if (!newVersion) {
+        for (const update of quorumUpdates) {
+          // if quorum is being lowered report it
+          if (update.oldQuorumNumerator > update.newQuorumNumerator) {
+            const strOldNumerator = update.oldQuorumNumerator.toString();
+            const strNewNumerator = update.newQuorumNumerator.toString();
+            const affectedProposald = await getAffectedProposals(
+              governor,
+              Number(strNewNumerator)
             );
+            if (affectedProposald.length > 0) {
+              findings.push(
+                Finding.fromObject({
+                  name: "Governor Quorum Numerator Lowered",
+                  description: `The governor's required quorum has been lowered from ${strOldNumerator} to ${strNewNumerator} for ${update.target}, affected proposalIds: ${affectedProposald}`,
+                  alertId: "GOVERNOR-QUORUM-UPDATE-PROPOSAL-1",
+                  severity: FindingSeverity.Low,
+                  type: FindingType.Info,
+                  metadata: {
+                    oldQuorumNumerator: strOldNumerator,
+                    newQuorumNumerator: strNewNumerator,
+                    address: update.target,
+                  },
+                })
+              );
+            }
           }
         }
       }
