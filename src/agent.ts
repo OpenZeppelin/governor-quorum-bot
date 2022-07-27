@@ -262,8 +262,8 @@ async function getAffectedProposals(
         const token = await getContract(governor.address, tokenAddress, true);
         const supply = await token.getPastTotalSupply(snapshot); //use snapshot here to get the supply
 
-        const quorum = (supply * quorumNumerator) / quorumDenominator;
-        if (quorum <= voteCount) {
+        const quorum = supply.mul(quorumNumerator).div(quorumDenominator);
+        if (quorum.lte(voteCount)) {
           result.push(proposalId.toHexString());
         }
       }
