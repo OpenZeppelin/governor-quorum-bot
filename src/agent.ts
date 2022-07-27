@@ -254,7 +254,7 @@ async function getAffectedProposals(
       const votes = await governor.proposalVotes(proposalId);
       //Check if vote succeeded
       if (votes.forVotes > votes.againstVotes) {
-        const voteCount = votes.forVotes + votes.abstainVotes;
+        const voteCount = votes.forVotes.add(votes.abstainVotes);
         const snapshot = await governor.proposalSnapshot(proposalId);
         //Check quorum
         const quorumDenominator = await governor.quorumDenominator();
