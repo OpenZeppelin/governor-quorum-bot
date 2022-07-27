@@ -8,7 +8,7 @@ import {
 import agent, { PROPOSAL_CREATED_EVENT } from "./agent";
 
 describe("proposal creation to lower quorum agent", () => {
-  //test must run on block 14800611 temporary
+  //test must run on block 14800611 temporarily
   let handleTransaction: HandleTransaction;
   const mockTxEvent = createTransactionEvent({} as any);
 

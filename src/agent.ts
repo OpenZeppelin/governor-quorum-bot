@@ -14,7 +14,7 @@ import keccak256 from "keccak256";
 
 export const PROPOSAL_CREATED_EVENT =
   "event ProposalCreated(uint256 proposalId, address proposer, address[] targets,  uint256[] values, string[] signatures, bytes[] calldatas, uint256 startBlock, uint256 endBlock, string description)";
-export const GOVERNOR_ADDRESS = "0x80BAE65E9D56498c7651C34cFB37e2F417C4A703";
+
 const TOKEN_ABI = [
   {
     inputs: [{ internalType: "uint256", name: "blockNumber", type: "uint256" }],
