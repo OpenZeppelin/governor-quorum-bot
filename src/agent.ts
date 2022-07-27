@@ -168,6 +168,77 @@ const ABI = [
     stateMutability: "view",
     type: "function",
   },
+  {
+    inputs: [],
+    name: "COUNTING_MODE",
+    outputs: [{ internalType: "string", name: "", type: "string" }],
+    stateMutability: "pure",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "proposalId",
+        type: "uint256",
+      },
+    ],
+    name: "proposals",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "id",
+        type: "uint256",
+      },
+      {
+        internalType: "address",
+        name: "proposer",
+        type: "address",
+      },
+      {
+        internalType: "uint256",
+        name: "eta",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "startBlock",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "endBlock",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "forVotes",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "againstVotes",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "abstainVotes",
+        type: "uint256",
+      },
+      {
+        internalType: "bool",
+        name: "canceled",
+        type: "bool",
+      },
+      {
+        internalType: "bool",
+        name: "executed",
+        type: "bool",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
 ];
 const FUNCTION_SELECTOR =
   "0x" + keccak256("updateQuorumNumerator(uint256)").toString("hex", 0, 4);
@@ -247,25 +318,28 @@ async function getAffectedProposals(
   const currentDefeatedProposals: BigNumber[] = await getDefeatedProposals(
     governor
   );
-  // if no previous proposal has failed due to lack of quorum, quorum changes won't affect them
-  if (currentDefeatedProposals.length != 0) {
-    // Simulate the contract.state() check using known new parameter
-    for (const proposalId of currentDefeatedProposals) {
-      const votes = await governor.proposalVotes(proposalId);
-      //Check if vote succeeded
-      if (votes.forVotes > votes.againstVotes) {
-        const voteCount = votes.forVotes.add(votes.abstainVotes);
-        const snapshot = await governor.proposalSnapshot(proposalId);
-        //Check quorum
-        const quorumDenominator = await governor.quorumDenominator();
-        const tokenAddress = await governor.token();
-        const token = await getContract(governor.address, tokenAddress, true);
-        const supply = await token.getPastTotalSupply(snapshot); //use snapshot here to get the supply
 
-        const quorum = supply.mul(quorumNumerator).div(quorumDenominator);
-        if (quorum.lte(voteCount)) {
-          result.push(proposalId.toHexString());
-        }
+  // Simulate the contract.state() check using known new parameter
+  for (const proposalId of currentDefeatedProposals) {
+    const countingMode = await governor.COUNTING_MODE();
+    const isCountingSimple = countingMode.indexOf("abstain") !== -1;
+    const votes = isCountingSimple
+      ? await governor.proposalVotes(proposalId)
+      : await governor.proposals(proposalId);
+    //Check if vote succeeded
+    if (votes.forVotes > votes.againstVotes) {
+      const voteCount = isCountingSimple
+        ? votes.forVotes.add(votes.abstainVotes)
+        : votes.forVotes;
+      const snapshot = await governor.proposalSnapshot(proposalId);
+      //Check quorum
+      const quorumDenominator = await governor.quorumDenominator();
+      const tokenAddress = await governor.token();
+      const token = await getContract(governor.address, tokenAddress, true);
+      const supply = await token.getPastTotalSupply(snapshot); //use snapshot here to get the supply
+      const quorum = supply.mul(quorumNumerator).div(quorumDenominator);
+      if (quorum.lte(voteCount)) {
+        result.push(proposalId.toHexString());
       }
     }
   }
@@ -304,7 +378,7 @@ const handleTransaction: HandleTransaction = async (
       if (!newVersion) {
         for (const update of quorumUpdates) {
           // if quorum is being lowered report it
-          if (update.oldQuorumNumerator.gt(update.newQuorumNumerator)) {
+          if (update.oldQuorumNumerator > update.newQuorumNumerator) {
             const strOldNumerator = update.oldQuorumNumerator.toString();
             const strNewNumerator = update.newQuorumNumerator.toString();
             const affectedProposald = await getAffectedProposals(
