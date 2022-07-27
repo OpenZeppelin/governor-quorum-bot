@@ -1,4 +1,3 @@
-import type {} from "@nomiclabs/hardhat-ethers";
 import { BigNumber } from "ethers";
 import {
   Finding,
