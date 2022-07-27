@@ -245,8 +245,8 @@ const FUNCTION_SELECTOR =
 
 type QuorumUpdateProposal = {
   target: string;
-  oldQuorumNumerator: number;
-  newQuorumNumerator: number;
+  oldQuorumNumerator: BigNumber;
+  newQuorumNumerator: BigNumber;
 };
 
 // Returns a governor contract using ethers provider pointing to a forked version of the chain
@@ -275,7 +275,7 @@ async function getQuorumUpdateValues(
     for (let i = 0; i < calldatas.length; i++) {
       const calldata = calldatas[i];
       if (calldata.startsWith(FUNCTION_SELECTOR)) {
-        const newQuorumNumerator = Number("0x" + calldata.slice(10));
+        const newQuorumNumerator = BigNumber.from("0x" + calldata.slice(10));
 
         let oldQuorumNumerator = await governor["quorumNumerator()"]();
 
@@ -378,7 +378,7 @@ const handleTransaction: HandleTransaction = async (
       if (!newVersion) {
         for (const update of quorumUpdates) {
           // if quorum is being lowered report it
-          if (update.oldQuorumNumerator > update.newQuorumNumerator) {
+          if (update.oldQuorumNumerator.gt(update.newQuorumNumerator)) {
             const strOldNumerator = update.oldQuorumNumerator.toString();
             const strNewNumerator = update.newQuorumNumerator.toString();
             const affectedProposald = await getAffectedProposals(
