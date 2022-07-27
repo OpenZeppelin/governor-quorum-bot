@@ -304,7 +304,7 @@ const handleTransaction: HandleTransaction = async (
       if (!newVersion) {
         for (const update of quorumUpdates) {
           // if quorum is being lowered report it
-          if (update.oldQuorumNumerator > update.newQuorumNumerator) {
+          if (update.oldQuorumNumerator.gt(update.newQuorumNumerator)) {
             const strOldNumerator = update.oldQuorumNumerator.toString();
             const strNewNumerator = update.newQuorumNumerator.toString();
             const affectedProposald = await getAffectedProposals(
