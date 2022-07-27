@@ -227,7 +227,7 @@ async function getDefeatedProposals(
   const eventFilter = await governor.filters.ProposalCreated();
   const proposalsEvents = await governor.queryFilter(eventFilter);
 
-  // Save all quorum defeated proposals
+  // Save all defeated proposals
   for (const proposalEvent of proposalsEvents) {
     const { proposalId } = proposalEvent.args as any;
     const state = await governor.state(proposalId);
