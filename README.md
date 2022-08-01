@@ -2,11 +2,15 @@
 
 ## Description
 
-This agent detects when a proposal is created to lower the quorum.
+This agent detects when a proposal is created to lower the quorum and it will be affected by [CVE-2022-31198](https://github.com/OpenZeppelin/openzeppelin-contracts/security/advisories/GHSA-xrc4-737v-9q75).
 
 ## Supported Chains
 
 - Ethereum
+- Optimism
+- BSC
+- Polygon
+- Avalanche
 
 ## Alerts
 
